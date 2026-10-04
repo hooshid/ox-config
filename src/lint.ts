@@ -447,12 +447,4 @@ export function drizzle(overrides?: Partial<OxlintConfig>): OxlintConfig {
 // ============================================================================
 
 export { defineConfig } from 'oxlint'
-export {
-  GLOB_SRC,
-  GLOB_JS,
-  GLOB_TS,
-  GLOB_JSX,
-  GLOB_TESTS,
-  GLOB_JSON,
-  GLOB_MARKDOWN,
-} from './utils'
+export { GLOB_SRC, GLOB_JS, GLOB_TS, GLOB_JSX, GLOB_TESTS, GLOB_JSON, GLOB_MARKDOWN } from './utils'

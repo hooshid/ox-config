@@ -2,24 +2,24 @@
   "name": "@hooshid/ox-config",
   "version": "0.1.0",
   "description": "Shared Oxlint + Oxfmt presets — one install for lint and format.",
+  "keywords": [
+    "config",
+    "format",
+    "lint",
+    "oxfmt",
+    "oxlint",
+    "preset"
+  ],
+  "homepage": "https://github.com/hooshid/ox-config#readme",
+  "bugs": {
+    "url": "https://github.com/hooshid/ox-config/issues"
+  },
   "license": "MIT",
   "author": "hooshid",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hooshid/ox-config.git"
   },
-  "homepage": "https://github.com/hooshid/ox-config#readme",
-  "bugs": {
-    "url": "https://github.com/hooshid/ox-config/issues"
-  },
-  "keywords": [
-    "oxlint",
-    "oxfmt",
-    "lint",
-    "format",
-    "preset",
-    "config"
-  ],
   "files": [
     "dist"
   ],

@@ -21,17 +21,19 @@ import type { OxfmtConfig } from 'oxfmt'
 /** Base format preset. Pass overrides to customize. */
 export function format(overrides?: Record<string, unknown>): OxfmtConfig {
   return defu(overrides, {
-    semi: false,
-    singleQuote: true,
-    trailingComma: 'all' as const,
     printWidth: 100,
     tabWidth: 2,
     useTabs: false,
-    arrowParens: 'always' as const,
-    bracketSpacing: true,
-    endOfLine: 'lf' as const,
+    semi: false,
+    singleQuote: true,
+    jsxSingleQuote: false,
     quoteProps: 'consistent' as const,
-
+    trailingComma: 'all' as const,
+    bracketSpacing: true,
+    bracketSameLine: false,
+    arrowParens: 'always' as const,
+    endOfLine: 'lf' as const,
+    sortPackageJson: true,
     sortImports: {
       groups: [
         'builtin',
@@ -46,10 +48,37 @@ export function format(overrides?: Record<string, unknown>): OxfmtConfig {
         { newlinesBetween: true },
         'type',
       ],
-      internalPattern: ['~/', '@/'],
+      internalPattern: ['~/', '@/', '#/'],
     },
+    ignorePatterns: [
+      // Build outputs
+      'dist/**',
+      'build/**',
+      'out/**',
+      '.output/**',
+      '.next/**',
+      '.turbo/**',
+      '.cache/**',
+      '.nitro/**',
+      '.tanstack/**',
+      '.vinxi/**',
+      '.content-collections/**',
 
-    sortPackageJson: true,
+      // Generated / vendor
+      'public/**',
+      'coverage/**',
+      '**/api',
+      '**/build',
+      '**/public',
+      'routeTree.gen.ts',
+      '*.min.js',
+      '*.min.css',
+
+      // Lock files
+      'pnpm-lock.yaml',
+      'package-lock.json',
+      'yarn.lock',
+    ],
   }) as OxfmtConfig
 }
 
