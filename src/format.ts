@@ -21,18 +21,25 @@ import type { OxfmtConfig } from 'oxfmt'
 /** Base format preset. Pass overrides to customize. */
 export function format(overrides?: Record<string, unknown>): OxfmtConfig {
   return defu(overrides, {
+    // Layout
     printWidth: 100,
     tabWidth: 2,
     useTabs: false,
+    endOfLine: 'lf' as const,
+
+    // Quotes & Semicolons
     semi: false,
     singleQuote: true,
     jsxSingleQuote: false,
     quoteProps: 'consistent' as const,
+
+    // Trailing & Spacing
     trailingComma: 'all' as const,
     bracketSpacing: true,
     bracketSameLine: false,
     arrowParens: 'always' as const,
-    endOfLine: 'lf' as const,
+
+    // Sorting
     sortPackageJson: true,
     sortImports: {
       groups: [
@@ -50,6 +57,8 @@ export function format(overrides?: Record<string, unknown>): OxfmtConfig {
       ],
       internalPattern: ['~/', '@/', '#/'],
     },
+
+    // Ignore
     ignorePatterns: [
       // Build outputs
       'dist/**',

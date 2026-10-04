@@ -21,6 +21,24 @@ export default defineConfig({
 
   // Sorting
   sortPackageJson: true,
+  sortImports: {
+    groups: [
+      'builtin',
+      { newlinesBetween: true },
+      'external',
+      { newlinesBetween: true },
+      'internal',
+      { newlinesBetween: true },
+      ['parent', 'sibling'],
+      { newlinesBetween: true },
+      'index',
+      { newlinesBetween: true },
+      'type',
+    ],
+    internalPattern: ['~/', '@/', '#/'],
+  },
+
+  // Ignore
   ignorePatterns: [
     'dist/**',
     'node_modules/**',
