@@ -1,5 +1,11 @@
 # @hooshid/ox-config
 
+## 1.0.0
+
+### Major Changes
+
+- c95d07d: Release first stable version and added tanstackStart()
+
 ## 0.3.0
 
 ### Minor Changes
