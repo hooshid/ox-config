@@ -151,6 +151,8 @@ export function base(overrides?: Partial<OxlintConfig>): OxlintConfig {
             'typescript/consistent-type-definitions': 'off',
             'typescript/consistent-type-imports': 'error',
             'no-unused-vars': 'off',
+            'no-useless-rename': 'error',
+            'uninvoked-array-callback': 'error',
             'typescript/array-type': 'error',
             'typescript/consistent-generic-constructors': 'error',
             'typescript/consistent-indexed-object-style': 'error',
@@ -158,6 +160,10 @@ export function base(overrides?: Partial<OxlintConfig>): OxlintConfig {
             'typescript/ban-tslint-comment': 'error',
             'typescript/no-empty-interface': 'error',
             'typescript/no-inferrable-types': 'error',
+            'typescript/no-misused-new': 'error',
+            'typescript/no-unnecessary-parameter-property-assignment': 'error',
+            'typescript/no-useless-empty-export': 'error',
+            'typescript/no-deprecated': 'warn',
             'typescript/prefer-for-of': 'error',
             'typescript/prefer-function-type': 'error',
             'typescript/unified-signatures': 'error',
@@ -247,7 +253,6 @@ export function unicorn(overrides?: Partial<OxlintConfig>): OxlintConfig {
         'unicorn/catch-error-name': 'error',
         'unicorn/error-message': 'error',
         'unicorn/prefer-optional-catch-binding': 'error',
-        'unicorn/no-zero-fractions': 'error',
         'unicorn/number-literal-case': 'error',
         'unicorn/numeric-separators-style': 'error',
         'unicorn/prefer-includes': 'error',
@@ -256,9 +261,24 @@ export function unicorn(overrides?: Partial<OxlintConfig>): OxlintConfig {
         'unicorn/prefer-string-trim-start-end': 'error',
         'unicorn/prefer-structured-clone': 'error',
         'unicorn/prefer-default-parameters': 'error',
-        'unicorn/no-console-spaces': 'error',
+        'unicorn/prefer-string-starts-ends-with': 'error',
+        'unicorn/prefer-set-size': 'error',
         'unicorn/throw-new-error': 'error',
         'unicorn/require-array-join-separator': 'error',
+
+        // Correctness
+        'unicorn/no-zero-fractions': 'error',
+        'unicorn/no-console-spaces': 'error',
+        'unicorn/no-useless-spread': 'error',
+        'unicorn/no-useless-fallback-in-spread': 'error',
+        'unicorn/no-unnecessary-await': 'error',
+        'unicorn/no-useless-length-check': 'error',
+        'unicorn/no-single-promise-in-promise-methods': 'error',
+        'unicorn/no-await-in-promise-methods': 'error',
+        'unicorn/no-invalid-remove-event-listener': 'error',
+        'unicorn/no-invalid-fetch-options': 'error',
+        'unicorn/no-new-array': 'error',
+        'unicorn/no-empty-file': 'warn',
       },
     },
     overrides,
@@ -291,7 +311,15 @@ export function depend(overrides?: Partial<OxlintConfig>): OxlintConfig {
 
 /** Node.js lint preset — native node plugin. */
 export function node(overrides?: Partial<OxlintConfig>): OxlintConfig {
-  return preset({ plugins: ['node'] }, overrides)
+  return preset(
+    {
+      plugins: ['node'],
+      rules: {
+        'unicorn/prefer-node-protocol': 'error',
+      },
+    },
+    overrides,
+  )
 }
 
 /** Promise lint preset — native promise plugin. */
@@ -304,20 +332,21 @@ export function promise(overrides?: Partial<OxlintConfig>): OxlintConfig {
 // ============================================================================
 
 const reactRules = {
-  // ─── Hooks (CRITICAL) ─────────────────────────────
+  // Hooks (CRITICAL)
   'react/rules-of-hooks': 'error',
   'react/exhaustive-deps': 'warn',
 
-  // ─── JSX Correctness ──────────────────────────────
+  // JSX Correctness
   'react/jsx-key': 'error',
   'react/jsx-no-duplicate-props': 'error',
   'react/jsx-no-undef': 'error',
-  'react/jsx-uses-vars': 'error',
   'react/jsx-no-target-blank': ['error', { allowReferrer: false }],
   'react/jsx-no-comment-textnodes': 'error',
   'react/jsx-no-script-url': 'error',
+  'react/jsx-props-no-spread-multi': 'error',
+  'react/jsx-no-useless-fragment': 'warn',
 
-  // ─── JSX Style ────────────────────────────────────
+  // JSX Style
   'react/jsx-boolean-value': ['error', 'never'],
   'react/jsx-curly-brace-presence': ['error', { props: 'never', children: 'never' }],
   'react/jsx-fragments': ['error', 'syntax'],
@@ -325,10 +354,9 @@ const reactRules = {
   'react/self-closing-comp': ['error', { component: true, html: true }],
   'react/hook-use-state': 'error',
 
-  // ─── Runtime Safety ───────────────────────────────
+  // Runtime Safety
   'react/no-children-prop': 'error',
   'react/no-danger-with-children': 'error',
-  'react/no-deprecated': 'error',
   'react/no-direct-mutation-state': 'error',
   'react/no-find-dom-node': 'error',
   'react/no-is-mounted': 'error',
@@ -339,11 +367,29 @@ const reactRules = {
   'react/require-render-return': 'error',
   'react/void-dom-elements-no-children': 'error',
 
-  // ─── Modern React (17+) ───────────────────────────
-  'react/react-in-jsx-scope': 'off',
-  'react/jsx-uses-react': 'off',
+  // Lifecycle Safety
+  'react/no-set-state': 'error',
+  'react/no-did-mount-set-state': 'error',
+  'react/no-did-update-set-state': 'error',
+  'react/no-will-update-set-state': 'error',
+  'react/no-this-in-sfc': 'error',
 
-  // ─── Noise Reduction ──────────────────────────────
+  // Refs & Boundaries
+  'react/forward-ref-uses-ref': 'error',
+  'react/no-unstable-nested-components': 'warn',
+  'react/iframe-missing-sandbox': 'error',
+  'react/set-state-in-render': 'error',
+  'react/error-boundaries': 'error',
+
+  // Performance
+  'react/jsx-no-constructed-context-values': 'warn',
+  'react/no-array-index-key': 'warn',
+  'react/style-prop-object': 'error',
+
+  // Modern React (17+)
+  'react/react-in-jsx-scope': 'off',
+
+  // Noise Reduction
   'react/no-unescaped-entities': 'off',
 } satisfies NonNullable<OxlintConfig['rules']>
 
@@ -604,6 +650,14 @@ export function vitest(options?: VitestOptions): OxlintConfig {
             'vitest/no-disabled-tests': isInEditorEnv() ? 'warn' : 'error',
             'vitest/no-focused-tests': isInEditorEnv() ? 'warn' : 'error',
             'vitest/require-mock-type-parameters': 'off',
+            'vitest/prefer-called-once': 'error',
+            'vitest/prefer-called-times': 'error',
+            'vitest/prefer-expect-type-of': 'error',
+            'vitest/prefer-to-be-object': 'error',
+            'vitest/hoisted-apis-on-top': 'error',
+            'vitest/require-awaited-expect-poll': 'error',
+            'vitest/no-conditional-tests': 'error',
+            'vitest/consistent-vitest-vi': 'error',
             'no-console': 'off',
             'unicorn/no-null': 'off',
             'typescript/ban-ts-comment': 'off',
