@@ -49,6 +49,7 @@ const DEFAULT_IGNORES: string[] = [
   '**/.hg/**',
   '**/.pnp.*',
   '**/public/**',
+  '**/routeTree.gen.ts',
   '**/*.d.ts',
 ]
 
@@ -466,8 +467,6 @@ export function tanstackRouter(overrides?: Partial<OxlintConfig>): OxlintConfig 
           },
         },
         {
-          // ─── Filename Convention (kebab-case) ─────────
-          // Applies only to files inside a `routes/` folder.
           files: ['**/routes/**/*.{ts,tsx}'],
           plugins: ['unicorn'],
           rules: {
