@@ -45,6 +45,9 @@ const DEFAULT_IGNORES: string[] = [
   '**/.tanstack/**',
   '**/.vinxi/**',
   '**/.git/**',
+  '**/.svn/**',
+  '**/.hg/**',
+  '**/.pnp.*',
   '**/public/**',
   '**/*.d.ts',
 ]
@@ -74,6 +77,11 @@ function preset(defaults: OxlintConfig, overrides?: Partial<OxlintConfig>): Oxli
   return defineConfig(defu(overrides ?? {}, defaults))
 }
 
+/**
+ * Resolve a jsPlugin package name to its absolute path.
+ * This allows oxlint to load plugins directly without relying on
+ * Node module resolution from the consumer's CWD — fixes pnpm strict mode.
+ */
 function resolvePlugin(name: string): string {
   try {
     return require.resolve(name)
@@ -108,15 +116,24 @@ export function base(overrides?: Partial<OxlintConfig>): OxlintConfig {
         pedantic: 'warn',
       },
       rules: {
+        // Shape-only check; necessary in interactive CLI and sequential workflows.
         'no-await-in-loop': 'off',
+        // High-noise; readonly intent better expressed via `const generics` or call-site.
         'typescript/prefer-readonly-parameter-types': 'off',
+        // Turns `if (str)` into ceremony for marginal safety gain.
         'typescript/strict-boolean-expressions': 'off',
+        // File/function size is a reviewer call, not a lint rule.
         'max-lines': 'off',
         'max-lines-per-function': 'off',
+        // Misfires on `/* @__PURE__ */` and similar bundler annotations.
         'no-inline-comments': 'off',
+        // TODO/FIXME triage belongs in the issue tracker.
         'no-warning-comments': 'off',
+        // Default cap of 10 is too tight for modern React/Next component files.
         'import/max-dependencies': 'off',
+        // Modern React renders apostrophes correctly; legacy noise.
         'react/no-unescaped-entities': 'off',
+        // Misfires on Next.js Server Actions and placeholder async functions.
         'require-await': 'off',
       },
       env: {
@@ -130,6 +147,7 @@ export function base(overrides?: Partial<OxlintConfig>): OxlintConfig {
         {
           files: [GLOB_TS],
           rules: {
+            // Only list rules that DIFFER from categories defaults
             'typescript/consistent-type-definitions': 'off',
             'typescript/consistent-type-imports': 'error',
             'no-unused-vars': 'off',
@@ -148,6 +166,7 @@ export function base(overrides?: Partial<OxlintConfig>): OxlintConfig {
         {
           files: [GLOB_SRC],
           rules: {
+            // CSS/style side-effect imports are standard in all frontend frameworks
             'import/no-unassigned-import': 'off',
             'import/no-relative-parent-imports': 'error',
             'import/first': 'error',
@@ -158,22 +177,31 @@ export function base(overrides?: Partial<OxlintConfig>): OxlintConfig {
           },
         },
         {
+          // Config files commonly import shared roots via `../../config.ts`
+          // in monorepos — intended pattern, not a smell.
           files: ['**/*.config.{ts,mts,cts,js,mjs,cjs}'],
           rules: {
             'import/no-relative-parent-imports': 'off',
           },
         },
         {
+          // Test files use mock setup patterns (vi.mock/vi.hoisted before imports),
+          // explicit mock signatures, and fixture data that
+          // legitimately violate strict style/safety rules.
           files: GLOB_TESTS,
           rules: {
+            // Mock setup pattern breaks standard import ordering
             'import/first': 'off',
             'import/no-duplicates': 'off',
             'import/consistent-type-specifier-style': 'off',
+            // Mock signatures need explicit values / async without await
             'unicorn/no-useless-undefined': 'off',
             'typescript/no-empty-function': 'off',
+            // Modernization hints aren't useful in tests
             'unicorn/prefer-string-replace-all': 'off',
             'unicorn/no-array-callback-reference': 'off',
             'unicorn/prefer-spread': 'off',
+            // Tests deliberately use non-null assertions, magic numbers, any
             'typescript/no-non-null-assertion': 'off',
             'no-magic-numbers': 'off',
             'typescript/no-explicit-any': 'off',
@@ -182,6 +210,7 @@ export function base(overrides?: Partial<OxlintConfig>): OxlintConfig {
             'typescript/no-unsafe-member-access': 'off',
             'typescript/no-unsafe-return': 'off',
             'typescript/no-unsafe-argument': 'off',
+            // Index keys are fine when rendering fixture lists
             'react/no-array-index-key': 'off',
           },
         },
@@ -191,7 +220,10 @@ export function base(overrides?: Partial<OxlintConfig>): OxlintConfig {
   )
 }
 
-/** Type-aware lint preset — enables 59 type-aware rules via tsgolint. */
+/**
+ * Type-aware lint preset — enables 59 type-aware rules via tsgolint + type checking.
+ * Requires TypeScript 7.0+ and `oxlint-tsgolint` (bundled as dependency).
+ */
 export function typeAware(overrides?: Partial<OxlintConfig>): OxlintConfig {
   return preset(
     {
@@ -280,10 +312,23 @@ const reactStyleRules = {
   'react/hook-use-state': 'error',
 } as const
 
-/**
- * React lint preset — React + react-refresh (for Vite/TanStack Start).
- */
+/** React lint preset — enables native react + react-hooks plugin. */
 export function react(overrides?: Partial<OxlintConfig>): OxlintConfig {
+  return preset(
+    {
+      plugins: ['react'],
+      rules: {
+        // Automatic JSX runtime (React 17+) does not require explicit React import
+        'react/react-in-jsx-scope': 'off',
+        ...reactStyleRules,
+      },
+    },
+    overrides,
+  )
+}
+
+/** React + react-refresh preset (for Vite projects). Use instead of `react`. */
+export function reactVite(overrides?: Partial<OxlintConfig>): OxlintConfig {
   return preset(
     {
       plugins: ['react'],
@@ -295,6 +340,11 @@ export function react(overrides?: Partial<OxlintConfig>): OxlintConfig {
     },
     overrides,
   )
+}
+
+/** Next.js lint preset — enables native nextjs plugin. */
+export function nextjs(overrides?: Partial<OxlintConfig>): OxlintConfig {
+  return preset({ plugins: ['nextjs'] }, overrides)
 }
 
 /**
@@ -317,36 +367,17 @@ export function tanstackRouter(overrides?: Partial<OxlintConfig>): OxlintConfig 
 }
 
 // ============================================================================
-// Tailwind
+// Quality
 // ============================================================================
 
-interface TailwindOptions extends Partial<OxlintConfig> {
-  entryPoint?: string
-  rootFontSize?: number
-  /** File glob patterns for tailwind rules. @default GLOB_JSX */
-  files?: string[]
+/** Accessibility lint preset — enables native jsx-a11y plugin. */
+export function a11y(overrides?: Partial<OxlintConfig>): OxlintConfig {
+  return preset({ plugins: ['jsx-a11y'] }, overrides)
 }
 
-/** Tailwind CSS lint preset — eslint-plugin-better-tailwindcss. */
-export function tailwind(options: TailwindOptions = {}): OxlintConfig {
-  const { entryPoint = 'src/styles/globals.css', rootFontSize = 16, files, ...overrides } = options
-
-  return preset(
-    {
-      jsPlugins: resolvePlugins(['eslint-plugin-better-tailwindcss']),
-      settings: { 'better-tailwindcss': { entryPoint, rootFontSize } },
-      overrides: [
-        {
-          files: files ?? [GLOB_JSX],
-          rules: {
-            'better-tailwindcss/enforce-consistent-line-wrapping': ['error', { printWidth: 0 }],
-            'better-tailwindcss/enforce-canonical-classes': 'error',
-          },
-        },
-      ],
-    },
-    overrides,
-  )
+/** JSDoc lint preset — enables native jsdoc plugin. */
+export function jsdoc(overrides?: Partial<OxlintConfig>): OxlintConfig {
+  return preset({ plugins: ['jsdoc'] }, overrides)
 }
 
 // ============================================================================
@@ -354,6 +385,7 @@ export function tailwind(options: TailwindOptions = {}): OxlintConfig {
 // ============================================================================
 
 interface VitestOptions extends Partial<OxlintConfig> {
+  /** Test file glob patterns. Replaces the default GLOB_TESTS. */
   files?: string[]
 }
 
@@ -397,10 +429,46 @@ export function vitest(options?: VitestOptions): OxlintConfig {
 }
 
 // ============================================================================
+// Tailwind
+// ============================================================================
+
+interface TailwindOptions extends Partial<OxlintConfig> {
+  entryPoint?: string
+  rootFontSize?: number
+  /** File glob patterns for tailwind rules. @default GLOB_JSX */
+  files?: string[]
+}
+
+/** Tailwind CSS lint preset — eslint-plugin-better-tailwindcss. */
+export function tailwind(options: TailwindOptions = {}): OxlintConfig {
+  const { entryPoint = 'src/styles/globals.css', rootFontSize = 16, files, ...overrides } = options
+
+  return preset(
+    {
+      jsPlugins: resolvePlugins(['eslint-plugin-better-tailwindcss']),
+      settings: { 'better-tailwindcss': { entryPoint, rootFontSize } },
+      overrides: [
+        {
+          files: files ?? [GLOB_JSX],
+          rules: {
+            'better-tailwindcss/enforce-consistent-line-wrapping': ['error', { printWidth: 0 }],
+            'better-tailwindcss/enforce-canonical-classes': 'error',
+          },
+        },
+      ],
+    },
+    overrides,
+  )
+}
+
+// ============================================================================
 // Backend / ORM
 // ============================================================================
 
-/** NestJS lint preset — @darraghor/eslint-plugin-nestjs-typed. */
+/**
+ * NestJS lint preset — loads @darraghor/eslint-plugin-nestjs-typed via jsPlugin.
+ * Covers DI validation, Swagger consistency, decorator bug prevention (19 AST rules).
+ */
 export function nestjs(overrides?: Partial<OxlintConfig>): OxlintConfig {
   return preset(
     {
@@ -408,15 +476,18 @@ export function nestjs(overrides?: Partial<OxlintConfig>): OxlintConfig {
         { name: 'nestjs-typed', specifier: '@darraghor/eslint-plugin-nestjs-typed' },
       ]),
       rules: {
+        // DI
         'nestjs-typed/injectable-should-be-provided': 'error',
         'nestjs-typed/provided-injected-should-match-factory-parameters': 'error',
         'nestjs-typed/use-injectable-provided-token': 'error',
+        // Swagger
         'nestjs-typed/api-property-matches-property-optionality': 'error',
         'nestjs-typed/controllers-should-supply-api-tags': 'error',
         'nestjs-typed/api-method-should-specify-api-response': 'error',
         'nestjs-typed/api-property-returning-array-should-set-array': 'error',
         'nestjs-typed/api-property-should-have-api-extra-models': 'error',
         'nestjs-typed/api-operation-summary-description-capitalized': 'error',
+        // Bug prevention
         'nestjs-typed/param-decorator-name-matches-route-param': 'error',
         'nestjs-typed/validate-nested-of-array-should-set-each': 'error',
         'nestjs-typed/all-properties-are-whitelisted': 'error',
