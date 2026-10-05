@@ -1,6 +1,6 @@
 {
   "name": "@hooshid/ox-config",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Shared Oxlint + Oxfmt presets — one install for lint and format.",
   "keywords": [
     "config",
