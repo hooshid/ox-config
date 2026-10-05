@@ -303,39 +303,70 @@ export function promise(overrides?: Partial<OxlintConfig>): OxlintConfig {
 // Frontend
 // ============================================================================
 
-const reactStyleRules = {
-  'react/jsx-pascal-case': 'error',
-  'react/jsx-boolean-value': 'error',
-  'react/jsx-curly-brace-presence': 'error',
-  'react/jsx-fragments': 'error',
-  'react/self-closing-comp': 'error',
-  'react/hook-use-state': 'error',
-} as const
+const reactRules = {
+  // ─── Hooks (CRITICAL) ─────────────────────────────
+  'react/rules-of-hooks': 'error',
+  'react/exhaustive-deps': 'warn',
 
-/** React lint preset — enables native react + react-hooks plugin. */
+  // ─── JSX Correctness ──────────────────────────────
+  'react/jsx-key': 'error',
+  'react/jsx-no-duplicate-props': 'error',
+  'react/jsx-no-undef': 'error',
+  'react/jsx-uses-vars': 'error',
+  'react/jsx-no-target-blank': ['error', { allowReferrer: false }],
+  'react/jsx-no-comment-textnodes': 'error',
+  'react/jsx-no-script-url': 'error',
+
+  // ─── JSX Style ────────────────────────────────────
+  'react/jsx-boolean-value': ['error', 'never'],
+  'react/jsx-curly-brace-presence': ['error', { props: 'never', children: 'never' }],
+  'react/jsx-fragments': ['error', 'syntax'],
+  'react/jsx-pascal-case': ['error', { allowAllCaps: false, allowNamespace: true }],
+  'react/self-closing-comp': ['error', { component: true, html: true }],
+  'react/hook-use-state': 'error',
+
+  // ─── Runtime Safety ───────────────────────────────
+  'react/no-children-prop': 'error',
+  'react/no-danger-with-children': 'error',
+  'react/no-deprecated': 'error',
+  'react/no-direct-mutation-state': 'error',
+  'react/no-find-dom-node': 'error',
+  'react/no-is-mounted': 'error',
+  'react/no-render-return-value': 'error',
+  'react/no-string-refs': 'error',
+  'react/no-unknown-property': 'error',
+  'react/no-unsafe': 'error',
+  'react/require-render-return': 'error',
+  'react/void-dom-elements-no-children': 'error',
+
+  // ─── Modern React (17+) ───────────────────────────
+  'react/react-in-jsx-scope': 'off',
+  'react/jsx-uses-react': 'off',
+
+  // ─── Noise Reduction ──────────────────────────────
+  'react/no-unescaped-entities': 'off',
+} satisfies NonNullable<OxlintConfig['rules']>
+
+/** React lint preset — core React + Hooks rules. */
 export function react(overrides?: Partial<OxlintConfig>): OxlintConfig {
   return preset(
     {
       plugins: ['react'],
-      rules: {
-        // Automatic JSX runtime (React 17+) does not require explicit React import
-        'react/react-in-jsx-scope': 'off',
-        ...reactStyleRules,
-      },
+      rules: reactRules,
     },
     overrides,
   )
 }
 
-/** React + react-refresh preset (for Vite projects). Use instead of `react`. */
+/** React + react-refresh preset (for Vite, TanStack Start, etc.). */
 export function reactVite(overrides?: Partial<OxlintConfig>): OxlintConfig {
   return preset(
     {
       plugins: ['react'],
       jsPlugins: resolvePlugins(['eslint-plugin-react-refresh']),
       rules: {
-        'react/react-in-jsx-scope': 'off',
-        ...reactStyleRules,
+        ...reactRules,
+        'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       },
     },
     overrides,
@@ -348,8 +379,14 @@ export function nextjs(overrides?: Partial<OxlintConfig>): OxlintConfig {
 }
 
 /**
- * TanStack Router lint preset — loads @tanstack/eslint-plugin-router.
- * Covers route-param-names and create-route-property-order.
+ * TanStack Router lint preset.
+ *
+ * Loads @tanstack/eslint-plugin-router and applies conventions specific
+ * to file-based routing setups.
+ *
+ * Rules provided by the plugin:
+ * - `route-param-names` — validates `$param` names match between route path and params
+ * - `create-route-property-order` — enforces consistent property order in `createRoute()`
  */
 export function tanstackRouter(overrides?: Partial<OxlintConfig>): OxlintConfig {
   return preset(
@@ -358,9 +395,159 @@ export function tanstackRouter(overrides?: Partial<OxlintConfig>): OxlintConfig 
         { name: 'tanstack-router', specifier: '@tanstack/eslint-plugin-router' },
       ]),
       rules: {
+        // ─── Route Configuration ─────────────────────────
         'tanstack-router/route-param-names': 'error',
         'tanstack-router/create-route-property-order': 'error',
+
+        // ─── Route File Conventions ──────────────────────
+        // Route files should use named exports for route objects
+        // (default export reserved for the component or route)
+        'import/no-default-export': 'off', // Router requires default exports
       },
+      overrides: [
+        {
+          // Route files follow specific naming and structure
+          files: ['**/routes/**/*.{ts,tsx}'],
+          rules: {
+            // Routes must not use window directly — use router hooks
+            'no-restricted-globals': [
+              'error',
+              {
+                name: 'window',
+                message: 'Use useRouter() or useNavigate() instead of window in route files.',
+              },
+            ],
+          },
+        },
+        {
+          // ─── Filename Convention (kebab-case) ─────────
+          // Applies only to files inside a `routes/` folder.
+          files: ['**/routes/**/*.{ts,tsx}'],
+          plugins: ['unicorn'],
+          rules: {
+            'unicorn/filename-case': [
+              'error',
+              {
+                case: 'kebabCase',
+                ignore: [
+                  '\\$', // dynamic params: $postId.tsx, posts.$postId.tsx
+                  '^_', // pathless/root: _auth.tsx, __root.tsx
+                  '\\.', // multi-segment: posts.index.tsx, route.lazy.tsx
+                ],
+              },
+            ],
+          },
+        },
+        {
+          // Root route file convention
+          files: ['**/routes/__root.tsx'],
+          rules: {
+            // __root.tsx can't use useNavigate (no router context yet)
+            'no-restricted-globals': 'off',
+          },
+        },
+      ],
+    },
+    overrides,
+  )
+}
+
+/**
+ * TanStack Start lint preset.
+ *
+ * Adds rules for server functions, client/server boundaries, and Start
+ * conventions. This preset assumes `reactVite()` and `tanstackRouter()`
+ * are already in the `extends` array.
+ *
+ */
+export function tanstackStart(overrides?: Partial<OxlintConfig>): OxlintConfig {
+  return preset(
+    {
+      rules: {
+        // ─── Server Function Safety ──────────────────────
+        // Prevent async promise executors (Start loaders must be sync wrapper)
+        'no-async-promise-executor': 'error',
+        // Sequential awaits are fine in server functions
+        'no-await-in-loop': 'off',
+
+        // ─── Client / Server Boundary ────────────────────
+        // Node.js modules must not leak into client bundles
+        'import/no-nodejs-modules': 'error',
+
+        // ─── Loader Conventions ──────────────────────────
+        // Loaders must consistently return or throw
+        'consistent-return': 'error',
+
+        // ─── Common Start Pitfalls ───────────────────────
+        // Empty functions are common in placeholder server functions
+        'no-empty-function': 'warn',
+      },
+
+      overrides: [
+        {
+          // Server-only files — Node.js APIs allowed
+          files: ['**/*.server.{ts,tsx}', '**/server/**/*.{ts,tsx}', '**/server-fns/**/*.{ts,tsx}'],
+          rules: {
+            'import/no-nodejs-modules': 'off',
+            'no-console': 'off',
+          },
+        },
+        {
+          // Client-only files — Node.js APIs forbidden
+          files: ['**/*.client.{ts,tsx}', '**/components/**/*.{ts,tsx}'],
+          rules: {
+            'import/no-nodejs-modules': 'error',
+          },
+        },
+        {
+          // Route files — server-aware
+          files: ['**/routes/**/*.{ts,tsx}'],
+          rules: {
+            // Routes use loaders, not direct fetch in component
+            'no-restricted-syntax': [
+              'warn',
+              {
+                selector: 'CallExpression[callee.name="fetch"]',
+                message: 'Prefer a loader or server function over direct fetch in route files.',
+              },
+            ],
+          },
+        },
+        {
+          files: ['**/*.server.{ts,tsx}', '**/*.client.{ts,tsx}'],
+          plugins: ['unicorn'],
+          rules: {
+            'unicorn/filename-case': [
+              'error',
+              {
+                case: 'kebabCase',
+                ignore: [
+                  '\\.', // allow *.server.ts / *.client.ts (has dots)
+                ],
+              },
+            ],
+          },
+        },
+        {
+          files: ['**/*.server.{ts,tsx}', '**/server/**/*.{ts,tsx}', '**/server-fns/**/*.{ts,tsx}'],
+          rules: {
+            'import/no-nodejs-modules': 'off',
+            'no-console': 'off',
+            // ← جدید: جلوگیری از crash توی SSR
+            'no-restricted-globals': [
+              'error',
+              {
+                name: 'window',
+                message:
+                  'Not available in server context. Use a server function or guard with typeof window.',
+              },
+              { name: 'document', message: 'Not available in server context.' },
+              { name: 'localStorage', message: 'Not available in server context.' },
+              { name: 'sessionStorage', message: 'Not available in server context.' },
+            ],
+          },
+        },
+      ],
     },
     overrides,
   )

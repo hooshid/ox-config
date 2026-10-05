@@ -16,11 +16,11 @@ pnpm add -D @hooshid/ox-config
 Create `oxlint.config.ts` in your project root:
 
 ```ts
-import { base, unicorn, depend, react, tailwind, vitest } from '@hooshid/ox-config/lint'
+import { base, unicorn, depend, reactVite, tailwind } from '@hooshid/ox-config/lint'
 import { defineConfig } from 'oxlint'
 
 export default defineConfig({
-  extends: [base(), unicorn(), depend(), react(), tailwind(), vitest()],
+  extends: [base(), unicorn(), depend(), reactVite(), tailwind()],
 })
 ```
 
@@ -52,20 +52,21 @@ export default defineConfig({
 
 #### Runtime
 
-| Preset      | Description                        |
-| ----------- | ---------------------------------- |
-| `node()`    | Node.js specific rules             |
-| `promise()` | Promise best practices (16 rules)  |
+| Preset      | Description                       |
+| ----------- | --------------------------------- |
+| `node()`    | Node.js specific rules            |
+| `promise()` | Promise best practices (16 rules) |
 
 #### Frontend
 
-| Preset             | Description                                              |
-| ------------------ | -------------------------------------------------------- |
-| `react()`          | React + React Hooks                                      |
-| `reactVite()`      | React + React Hooks + React Refresh (for Vite)           |
-| `nextjs()`         | Next.js rules + Core Web Vitals                          |
-| `tanstackRouter()` | TanStack Router — route param names + property ordering  |
-| `tailwind()`       | Tailwind class consistency (better-tailwindcss plugin)   |
+| Preset             | Description                                                     |
+| ------------------ | --------------------------------------------------------------- |
+| `react()`          | React + React Hooks — core rules for any React setup            |
+| `reactVite()`      | React + React Hooks + React Refresh (for Vite)                  |
+| `nextjs()`         | Next.js rules + Core Web Vitals                                 |
+| `tanstackRouter()` | TanStack Router — routing rules + route folder naming convention |
+| `tanstackStart()`  | TanStack Start — server/client boundaries, SSR safety           |
+| `tailwind()`       | Tailwind class consistency (better-tailwindcss plugin)          |
 
 #### Backend / ORM
 
@@ -89,53 +90,91 @@ export default defineConfig({
 
 ### Which React preset should I use?
 
-| Project type                  | Preset        |
-| ----------------------------- | ------------- |
-| Next.js                       | `nextjs()`    |
-| Vite + React                  | `reactVite()` |
-| TanStack Start                | `reactVite()` |
-| Plain React (CRA, custom)     | `react()`     |
+| Project type              | Presets to use                                    |
+| ------------------------- | ------------------------------------------------- |
+| Next.js                   | `nextjs()` + `react()`                            |
+| Vite + React              | `reactVite()`                                     |
+| TanStack Router (SPA)     | `reactVite()` + `tanstackRouter()`                |
+| TanStack Start            | `reactVite()` + `tanstackRouter()` + `tanstackStart()` |
+| Plain React (custom build)| `react()`                                         |
 
 > `reactVite()` adds `eslint-plugin-react-refresh` to warn about incorrect fast-refresh patterns — use it for any Vite-based setup.
 
-### NestJS projects
+### React rules
 
-> [!WARNING]
-> NestJS must disable `typescript/consistent-type-imports` — NestJS DI uses runtime class references in constructor params, and without type-aware linting this rule incorrectly converts them to `import type`, breaking DI at runtime.
->
-> ```ts
-> export default defineConfig({
->   extends: [base(), nestjs()],
->   overrides: [
->     {
->       files: ['**/*.{ts,mts,cts,tsx}'],
->       rules: {
->         'typescript/consistent-type-imports': 'off',
->         'typescript/no-extraneous-class': ['error', { allowWithDecorator: true }],
->       },
->     },
->   ],
-> })
-> ```
+The `react()` and `reactVite()` presets enable **~27 rules** covering:
+
+- **Hooks (critical):** `rules-of-hooks`, `exhaustive-deps`
+- **JSX correctness:** `jsx-key`, `jsx-no-duplicate-props`, `jsx-no-undef`, `jsx-no-target-blank`, `jsx-no-script-url`, `jsx-no-comment-textnodes`
+- **JSX style:** `jsx-boolean-value`, `jsx-curly-brace-presence`, `jsx-fragments`, `jsx-pascal-case`, `self-closing-comp`, `hook-use-state`
+- **Runtime safety:** `no-children-prop`, `no-danger-with-children`, `no-deprecated`, `no-direct-mutation-state`, `no-find-dom-node`, `no-is-mounted`, `no-render-return-value`, `no-string-refs`, `no-unknown-property`, `no-unsafe`, `require-render-return`, `void-dom-elements-no-children`
+
+Modern React 17+ is assumed — `react/react-in-jsx-scope` and `react/jsx-uses-react` are off.
 
 ### TanStack Router
 
-The `tanstackRouter()` preset loads [`@tanstack/eslint-plugin-router`](https://www.npmjs.com/package/@tanstack/eslint-plugin-router):
+The `tanstackRouter()` preset loads [`@tanstack/eslint-plugin-router`](https://www.npmjs.com/package/@tanstack/eslint-plugin-router) and enforces file naming for the `routes/` folder.
 
 ```ts
-import { base, tanstackRouter } from '@hooshid/ox-config/lint'
+import { base, reactVite, tanstackRouter, tailwind } from '@hooshid/ox-config/lint'
 import { defineConfig } from 'oxlint'
 
 export default defineConfig({
-  extends: [base(), tanstackRouter()],
+  extends: [base(), reactVite(), tanstackRouter(), tailwind()],
 })
 ```
 
-Covers:
-- `route-param-names` — validates route param placeholders match
-- `create-route-property-order` — enforces property ordering in `createRoute()`
+**Rules provided:**
 
-### Full frontend example
+- `tanstack-router/route-param-names` — validates `$param` names between route path and params
+- `tanstack-router/create-route-property-order` — enforces property order in `createRoute()`
+
+**File naming convention:**
+
+All files inside a `routes/` folder must be **kebab-case**:
+
+| Filename                    | Valid? | Notes                                  |
+| --------------------------- | ------ | -------------------------------------- |
+| `posts.tsx`                 | ✅     |                                        |
+| `posts-index.tsx`           | ✅     |                                        |
+| `about-page.tsx`            | ✅     |                                        |
+| `posts.$postId.tsx`         | ✅     | exception: `$` dynamic params          |
+| `_auth.tsx`                 | ✅     | exception: `_` pathless routes         |
+| `__root.tsx`                | ✅     | exception: `_` prefix                  |
+| `posts.index.tsx`           | ✅     | exception: multiple dots (file nesting)|
+| `Posts.tsx`                 | ❌     | must be `posts.tsx`                    |
+| `postsIndex.tsx`            | ❌     | must be `posts-index.tsx`              |
+| `posts_index.tsx`           | ❌     | must be `posts-index.tsx`              |
+
+> [!NOTE]
+> Folder naming inside `routes/` is **not** covered by Oxlint (linters run file-by-file). To enforce kebab-case for folders, use a separate script or CI step.
+
+### TanStack Start
+
+The `tanstackStart()` preset adds rules for **server/client boundaries**, **server function safety**, and **SSR conventions**.
+
+> [!IMPORTANT]
+> This preset does **not** include `reactVite()` or `tanstackRouter()`. Add them in the correct order:
+>
+> ```ts
+> extends: [base(), reactVite(), tanstackRouter(), tanstackStart(), tailwind(), vitest()]
+> ```
+
+**Rules added:**
+
+- `no-async-promise-executor`, `consistent-return`, `no-empty-function`
+- `import/no-nodejs-modules` — prevents Node.js APIs from leaking into client bundles
+- `no-restricted-globals` for `window`/`document`/`localStorage`/`sessionStorage` in server files
+
+**File scope conventions:**
+
+| File pattern                                                    | Behavior                                              |
+| --------------------------------------------------------------- | ----------------------------------------------------- |
+| `**/*.server.{ts,tsx}`, `**/server/**`, `**/server-fns/**`      | Node.js APIs allowed, browser globals forbidden       |
+| `**/*.client.{ts,tsx}`, `**/components/**`                      | Node.js APIs forbidden                                |
+| `**/routes/**`                                                  | Warning on direct `fetch()` — prefer loaders          |
+
+**Example:**
 
 ```ts
 import {
@@ -144,6 +183,7 @@ import {
   depend,
   reactVite,
   tanstackRouter,
+  tanstackStart,
   tailwind,
   vitest,
 } from '@hooshid/ox-config/lint'
@@ -156,23 +196,25 @@ export default defineConfig({
     depend(),
     reactVite(),
     tanstackRouter(),
-    tailwind({ entryPoint: 'src/styles/globals.css', rootFontSize: 16 }),
+    tanstackStart(),
+    tailwind({ entryPoint: 'src/styles/globals.css' }),
     vitest(),
   ],
 })
 ```
 
-### Full backend example
+### NestJS
+
+> [!WARNING]
+> NestJS must disable `typescript/consistent-type-imports` — NestJS DI uses runtime class references in constructor params, and without type-aware linting this rule incorrectly converts them to `import type`, breaking DI at runtime.
 
 ```ts
-import { base, unicorn, depend, node, promise, nestjs, drizzle, vitest } from '@hooshid/ox-config/lint'
+import { base, node, promise, nestjs, drizzle, vitest } from '@hooshid/ox-config/lint'
 import { defineConfig } from 'oxlint'
 
 export default defineConfig({
   extends: [
     base(),
-    unicorn(),
-    depend(),
     node(),
     promise(),
     nestjs(),
@@ -223,10 +265,10 @@ Each package's own `tsconfig.json` is auto-detected by oxlint — no extra confi
 
 #### Do I still need a separate `tsc --noEmit` step?
 
-Short answer: **yes, keep it.** With `typeCheck` enabled, oxlint already surfaces tsc diagnostics for the files it lints, so during local development you'll usually catch type errors from `lint` alone. But a dedicated `typecheck` script is still worth keeping because:
+**Yes, keep it.** With `typeCheck` enabled, `oxlint` already surfaces tsc diagnostics for the files it lints, so during local development you'll usually catch type errors from `lint` alone. But a dedicated `typecheck` script is still worth keeping because:
 
-- **Different file scope.** `tsc --noEmit` honors the tsconfig's `include` / `exclude`. `oxlint` walks the filesystem by its own rules and honors `ignorePatterns`. The two sets overlap but are not identical — a file covered by tsconfig but excluded from lint (or vice versa) will only be checked by one of them.
-- **Project-level diagnostics.** tsc catches errors that aren't attached to a single source file: `tsconfig.json` misconfiguration (`TS5xxx`), broken project `references`, `paths` alias typos. Per-file type-aware linting can't see these.
+- **Different file scope.** `tsc --noEmit` honors the tsconfig's `include`/`exclude`. `oxlint` walks the filesystem by its own rules and honors `ignorePatterns`. The two sets overlap but are not identical.
+- **Project-level diagnostics.** tsc catches errors that aren't attached to a single source file: `tsconfig.json` misconfiguration (`TS5xxx`), broken project `references`, `paths` alias typos.
 - **Clearer CI failures.** Running `typecheck` and `lint` as separate steps makes it obvious whether a red build is a type error or a lint rule violation.
 
 ### Monorepo (nested configs)
@@ -234,8 +276,6 @@ Short answer: **yes, keep it.** With `typeCheck` enabled, oxlint already surface
 Oxlint supports [nested configuration](https://oxc.rs/docs/guide/usage/linter/nested-config.html) for monorepos. Each package can have its own `oxlint.config.ts` that extends the root config and adds package-specific presets.
 
 #### Root config
-
-Keep shared baseline and `typeAware()` at the root:
 
 ```ts
 // oxlint.config.ts (root)
@@ -252,11 +292,11 @@ export default defineConfig({
 ```ts
 // packages/web/oxlint.config.ts
 import rootConfig from '../../oxlint.config.ts'
-import { reactVite, tanstackRouter, vitest, tailwind } from '@hooshid/ox-config/lint'
+import { reactVite, tanstackRouter, tanstackStart, vitest, tailwind } from '@hooshid/ox-config/lint'
 import { defineConfig } from 'oxlint'
 
 export default defineConfig({
-  extends: [rootConfig, reactVite(), tanstackRouter(), vitest(), tailwind()],
+  extends: [rootConfig, reactVite(), tanstackRouter(), tanstackStart(), vitest(), tailwind()],
 })
 ```
 
@@ -272,7 +312,7 @@ export default defineConfig({
 ```
 
 > [!TIP]
-> Packages without their own `oxlint.config.ts` automatically use the root config — no setup needed for packages that only need the shared baseline.
+> Packages without their own `oxlint.config.ts` automatically use the root config.
 
 > [!WARNING]
 > Passing `-c` or `--config` explicitly on the CLI **disables** nested config lookup. Let oxlint auto-detect configs by running without `-c`.
@@ -300,6 +340,7 @@ export default defineConfig({ ...format() })
 | `endOfLine`          | `lf`                  |
 | Import sorting       | Grouped with newlines |
 | Package.json sorting | Enabled               |
+| Ignore patterns      | Build outputs, lockfiles, generated files |
 
 ### Override
 
@@ -359,6 +400,51 @@ Most modern editors support EditorConfig natively or via a plugin. This ensures 
 }
 ```
 
+## Full-stack example (TanStack Start + NestJS)
+
+```ts
+// apps/web/oxlint.config.ts
+import rootConfig from '../../oxlint.config.ts'
+import { reactVite, tanstackRouter, tanstackStart, tailwind, vitest } from '@hooshid/ox-config/lint'
+import { defineConfig } from 'oxlint'
+
+export default defineConfig({
+  extends: [
+    rootConfig,
+    reactVite(),
+    tanstackRouter(),
+    tanstackStart(),
+    tailwind(),
+    vitest(),
+  ],
+})
+```
+
+```ts
+// apps/api/oxlint.config.ts
+import rootConfig from '../../oxlint.config.ts'
+import { node, promise, nestjs, drizzle, vitest } from '@hooshid/ox-config/lint'
+import { defineConfig } from 'oxlint'
+
+export default defineConfig({
+  extends: [rootConfig, node(), promise(), nestjs(), drizzle(), vitest()],
+  overrides: [
+    {
+      files: ['**/*.{ts,mts,cts,tsx}'],
+      rules: {
+        'typescript/consistent-type-imports': 'off',
+        'typescript/no-extraneous-class': ['error', { allowWithDecorator: true }],
+      },
+    },
+  ],
+})
+```
+
 ## License
 
 MIT
+
+## Sources
+
+1. [Oxlint: Writing JS Plugins](https://oxc.rs/docs/guide/usage/linter/writing-js-plugins.html)
+3. [infra-code source](https://github.com/oNo500/infra-code/tree/master/packages/code-quality)
