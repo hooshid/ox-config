@@ -4,6 +4,12 @@
 
 ### Minor Changes
 
+- 2a20069: Setup automated release pipeline
+
+## 0.2.0
+
+### Minor Changes
+
 - a0ec117: Update formatter and project structure
 
 ### Patch Changes
