@@ -1,5 +1,11 @@
 # @hooshid/ox-config
 
+## 1.0.2
+
+### Patch Changes
+
+- 8ca5859: Fix routeTree.gen.ts in ignore list
+
 ## 1.0.1
 
 ### Patch Changes
