@@ -1,5 +1,11 @@
 # @hooshid/ox-config
 
+## 0.3.0
+
+### Minor Changes
+
+- 355c1c5: Expand README with full preset reference, NestJS warnings, and monorepo guide
+
 ## 0.2.0
 
 ### Minor Changes
