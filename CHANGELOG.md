@@ -1,5 +1,11 @@
 # @hooshid/ox-config
 
+## 1.0.1
+
+### Patch Changes
+
+- edde446: Update lints
+
 ## 1.0.0
 
 ### Major Changes
