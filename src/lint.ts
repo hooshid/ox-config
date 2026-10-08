@@ -649,8 +649,8 @@ export function vitest(options?: VitestOptions): OxlintConfig {
             'vitest/no-disabled-tests': isInEditorEnv() ? 'warn' : 'error',
             'vitest/no-focused-tests': isInEditorEnv() ? 'warn' : 'error',
             'vitest/require-mock-type-parameters': 'off',
+            // Prefer toHaveBeenCalledOnce() over toHaveBeenCalledTimes(1) — more readable
             'vitest/prefer-called-once': 'error',
-            'vitest/prefer-called-times': 'error',
             'vitest/prefer-expect-type-of': 'error',
             'vitest/prefer-to-be-object': 'error',
             'vitest/hoisted-apis-on-top': 'error',
