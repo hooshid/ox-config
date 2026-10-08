@@ -1,5 +1,11 @@
 # @hooshid/ox-config
 
+## 1.0.4
+
+### Patch Changes
+
+- b3eabb0: Add routeTree.gen.ts to ignore kebab-case naming
+
 ## 1.0.3
 
 ### Patch Changes
