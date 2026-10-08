@@ -1,5 +1,11 @@
 # @hooshid/ox-config
 
+## 1.0.3
+
+### Patch Changes
+
+- 89aec5a: chore: Remove vitest/prefer-called-times rule
+
 ## 1.0.2
 
 ### Patch Changes
