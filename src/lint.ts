@@ -452,6 +452,23 @@ export function tanstackRouter(overrides?: Partial<OxlintConfig>): OxlintConfig 
         'import/no-default-export': 'off', // Router requires default exports
       },
       overrides: [
+        // ─── Generated route tree ───────────────────────
+        // TanStack Router's plugin writes routeTree.gen.ts on every dev run.
+        // Never lint it — it's not source code and its filename is
+        // intentionally PascalCase (routeTree), which unicorn/filename-case
+        // would otherwise flag.
+        {
+          files: [
+            '**/routeTree.gen.ts',
+            '**/routeTree.gen.tsx',
+            '**/*.generated.ts',
+            '**/*.gen.ts',
+          ],
+          rules: {
+            'unicorn/filename-case': 'off',
+          },
+        },
+
         {
           // Route files follow specific naming and structure
           files: ['**/routes/**/*.{ts,tsx}'],
